@@ -1,0 +1,868 @@
+<!DOCTYPE html>
+<html>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  <head>
+    <title> Line Charts </title>
+  </head>
+
+  <style type="text/css">
+
+    .line {
+        fill: none;
+        stroke: #ffab00;
+        stroke-width: 3;
+    }
+
+    .overlay {
+      fill: none;
+      pointer-events: all;
+    }
+
+    .dot {
+        fill: #ffab00;
+        stroke: #fff;
+    }
+
+      .focus circle {
+      fill: none;
+      stroke: blue;
+    }
+
+    </style>
+
+  <body> </body>
+
+  <script>
+  // SVG element and defining margins
+
+  const margin = {top: 90, right: 140, bottom: 90, left: 80};
+  const width = window.innerWidth - margin.left - margin.right;
+  const height = window.innerHeight - margin.top - margin.bottom;
+
+  var svg = d3.select("body").append("svg")
+    .attr("width", width + margin.left + margin.right)
+    .attr("height", height + margin.top + margin.bottom)
+    .append("g")
+    .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+   var time_parse = d3.timeParse("%Y-%m-%d");
+
+  // Loading data from csv
+  d3.csv("boardgame_ratings.csv").then(function (data) {
+    data.forEach(function(d) {
+    d["date"] = time_parse(d["date"]);
+    d["Catan=count"] = + d["Catan=count"];
+    d["Dominion=count"] = + d["Dominion=count"];
+    d["Codenames=count"] = + d["Codenames=count"];
+    d["Terraforming Mars=count"] = + d["Terraforming Mars=count"];
+    d["Magic: The Gathering=count"] = + d["Magic: The Gathering=count"];
+    d["Gloomhaven=count"] = + d["Gloomhaven=count"];
+    d["Dixit=count"] = + d["Dixit=count"];
+    d["Monopoly=count"] = + d["Monopoly=count"]; })
+
+    // creating x-axis and y-axis
+    var x_scale = d3.scaleTime()
+         .domain([d3.min(data, function(d) {return d["date"]; }), d3.max(data, function(d) {return d["date"]; })])
+         .range([50, width-50]);
+
+    var y_scale = d3.scaleLinear()
+         .domain([1, d3.max(data, d => parseInt(d["Catan=count"]))])
+         .range([height - margin.bottom+50, margin.top])
+
+    var format_time = d3.timeFormat("%b-%d");
+
+    var x_axis = d3.axisBottom(x_scale).tickFormat(format_time)
+                  .tickValues(d3.timeMonth.every(3).range(d3.min(data, function(d) { return d["date"]; }), d3.max(data, function(d) { return d["date"]; })));
+
+    var y_axis = d3.axisLeft(y_scale).ticks(10); //check ticks
+
+    // adding x-axis and y-axis and text labels to svg
+
+    svg.append("g")
+       .attr("class", "x axis")
+       .attr("transform", "translate(0," + (height-39) + ")")
+       .call(x_axis);
+
+    svg.append("g")
+       .attr("class", "y axis")
+       .attr("transform", "translate(" + 50 + ",0)")
+       .call(y_axis);
+
+    svg.append("text")
+       .attr("x", width/ 2 )
+       .attr("y", 0)
+       .style("font-weight","bold")
+       .style("text-anchor", "middle")
+       .style("font-size", "30px")
+       .text("Number of Ratings 2016-2020");
+
+    svg.append("text")
+        .attr("x", width/2)
+        .attr("y", height)
+        .style("font-size", "20px")
+        .style("text-anchor", "middle")
+        .text("Month");
+
+    svg.append("text")
+       .attr("x", -height/2)
+       .attr("y", 0)
+       .attr("transform", "rotate(-90)")
+       .style("font-size", "20px")
+       .style("text-anchor", "middle")
+       .text("Num of Ratings");
+
+    // defining lines for each game
+
+    var catan_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Catan=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var dominion_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Dominion=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var codenames_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Codenames=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var terraforming_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Terraforming Mars=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var magic_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Magic: The Gathering=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var gloomhaven_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Gloomhaven=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var dixit_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Dixit=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    var monopoly_line = d3.line()
+        .x(function(d) { return x_scale(d["date"]); })
+        .y(function(d) { return y_scale(d["Monopoly=count"]); })
+        .curve(d3.curveMonotoneX);
+
+    //  Adding lines to SVG
+
+    var games =  ['Catan',  'Dominion', 'Codenames',  'Terraforming  Mars',  'Gloomhaven',  'Magic:  The  Gathering',  'Dixit',  'Monopoly']
+
+    var i;
+    var color = []
+    for (i = 0; i < games.length; i++) {color.push(d3.schemeCategory10[i]);}
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[0])
+      .attr("d", catan_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[1])
+      .attr("d", dominion_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[2])
+      .attr("d", codenames_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[3])
+      .attr("d", terraforming_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[4])
+      .attr("d", magic_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[5])
+      .attr("d", gloomhaven_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[6])
+      .attr("d", dixit_line);
+
+    svg.append("path")
+      .datum(data)
+      .attr("class", "line")
+      .style("stroke", color[7])
+      .attr("d", monopoly_line);
+
+    game_counts = ["Catan=count", "Dominion=count", "Codenames=count", "Terraforming Mars=count", "Magic: The Gathering=count", "Gloomhaven=count","Dixit=count","Monopoly=count"]
+
+    for(i=0; i < games.length; i++){
+      svg.append("text")
+         .attr("transform","translate(" + (width-40) + "," + y_scale(data[data.length-1][game_counts[i]]) + ")")
+         .style("fill", color[i])
+         .text(games[i]);
+    }
+
+    })
+  </script>
+
+  <script>
+    var svg2 = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+     var time_parse = d3.timeParse("%Y-%m-%d");
+
+    // Loading data from csv
+    d3.csv("boardgame_ratings.csv").then(function (data) {
+      data.forEach(function(d) {
+      d["date"] = time_parse(d["date"]);
+      d["Catan=count"] = + d["Catan=count"];
+      d["Dominion=count"] = + d["Dominion=count"];
+      d["Codenames=count"] = + d["Codenames=count"];
+      d["Terraforming Mars=count"] = + d["Terraforming Mars=count"];
+      d["Magic: The Gathering=count"] = + d["Magic: The Gathering=count"];
+      d["Gloomhaven=count"] = + d["Gloomhaven=count"];
+      d["Dixit=count"] = + d["Dixit=count"];
+      d["Monopoly=count"] = + d["Monopoly=count"]; })
+
+      // creating x-axis and y-axis
+      var x_scale = d3.scaleTime()
+           .domain([d3.min(data, function(d) {return d["date"]; }), d3.max(data, function(d) {return d["date"]; })])
+           .range([50, width-50]);
+
+      var y_scale = d3.scaleLinear()
+           .domain([1, d3.max(data, d => parseInt(d["Catan=count"]))])
+           .range([height - margin.bottom+30, margin.top])
+
+      var format_time = d3.timeFormat("%b-%y");
+
+      var x_axis = d3.axisBottom(x_scale).tickFormat(format_time)
+                    .tickValues(d3.timeMonth.every(3).range(d3.min(data, function(d) { return d["date"]; }), d3.max(data, function(d) { return d["date"]; })));
+
+      var y_axis = d3.axisLeft(y_scale).ticks(10); //check ticks
+
+      // adding x-axis and y-axis and text labels to svg
+
+      svg2.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0," + (height-50) + ")")
+         .call(x_axis);
+
+      svg2.append("g")
+         .attr("class", "y axis")
+         .attr("transform", "translate(" + 50 + ",0)")
+         .call(y_axis);
+
+      svg2.append("text")
+         .attr("x", width/ 2 )
+         .attr("y", 0)
+         .style("font-weight","bold")
+         .style("text-anchor", "middle")
+         .style("font-size", "30px")
+         .text("Number of Ratings 2016-2020 with Rankings");
+
+      svg2.append("text")
+          .attr("x", width/2)
+          .attr("y", height)
+          .style("font-size", "20px")
+          .style("text-anchor", "middle")
+          .text("Month");
+
+      svg2.append("text")
+         .attr("x", -height/2)
+         .attr("y", 0)
+         .attr("transform", "rotate(-90)")
+         .style("font-size", "20px")
+         .style("text-anchor", "middle")
+         .text("Num of Ratings");
+
+      // defining lines for each game
+
+      var catan_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Catan=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var dominion_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Dominion=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var codenames_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Codenames=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var terraforming_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Terraforming Mars=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var magic_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Magic: The Gathering=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var gloomhaven_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Gloomhaven=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var dixit_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Dixit=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var monopoly_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale(d["Monopoly=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      //  Adding lines to SVG
+
+      var games =  ['Catan',  'Dominion', 'Codenames',  'Terraforming  Mars',  'Gloomhaven',  'Magic:  The  Gathering',  'Dixit',  'Monopoly']
+
+      var i;
+      var color = []
+      for (i = 0; i < games.length; i++) {color.push(d3.schemeCategory10[i]);}
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[0])
+        .attr("d", catan_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[1])
+        .attr("d", dominion_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[2])
+        .attr("d", codenames_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[3])
+        .attr("d", terraforming_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[4])
+        .attr("d", magic_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[5])
+        .attr("d", gloomhaven_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[6])
+        .attr("d", dixit_line);
+
+      svg2.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[7])
+        .attr("d", monopoly_line);
+
+      var ranks = []
+      for (i = 0; i < data.length; i=i+3) {ranks.push(data[i]);}
+
+      counts = ["Catan=count", "Dominion=count", "Codenames=count", "Terraforming Mars=count", "Magic: The Gathering=count","Gloomhaven=count","Dixit=count","Monopoly=count"]
+
+      // line labels
+      for(i=0; i < games.length; i++){
+        svg2.append("text")
+           .attr("transform","translate(" + (width-40) + "," + y_scale(data[data.length-1][counts[i]]) + ")")
+           .style("fill", color[i])
+           .text(games[i]);
+      }
+
+      game_colors = [color[0],color[2],color[3],color[5]]
+      game_ranks = ["Catan=rank", "Codenames=rank", "Terraforming Mars=rank", "Gloomhaven=rank"]
+      game_counts = ["Catan=count", "Codenames=count", "Terraforming Mars=count", "Gloomhaven=count"]
+
+      for(i = 0; i < game_counts.length; i++){
+        svg2.selectAll("dots")
+           .data(ranks)
+           .enter()
+           .append("circle")
+           .attr("r",9)
+           .attr("cx", function(d){return x_scale(d["date"])})
+           .attr("cy", function(d){return y_scale(d[game_counts[i]])})
+           .attr("fill", game_colors[i]);
+
+        svg2.selectAll("text"+i)
+           .data(ranks)
+           .enter()
+           .append("text")
+           .text(function(d) {return d[game_ranks[i]];})
+           .attr("x",function(d) {return x_scale(d["date"]);})
+           .attr("y", function(d) {return y_scale(d[game_counts[i]])+1.5;})
+           .attr("fill", "white")
+           .attr("font-size","10px")
+           .attr("font-weight","bold")
+           .attr("text-anchor", "middle");
+      }
+
+      svg2.append("circle")
+         .attr("cx", width+40)
+         .attr("cy", height-margin.top)
+         .attr("r",18)
+
+     svg2.append("text")
+        .attr("x", width+28)
+        .attr("y", height-margin.top+5)
+        .text("Rank")
+        .attr("text-anchor", "start")
+        .attr("fill","white")
+        .style("font-size","12px")
+
+     svg2.append("text")
+        .attr("x", width-30)
+        .attr("y", height-margin.top+40)
+        .text("BoardGameGeek Rank")
+        .attr("text-anchor", "start")
+
+    })
+  </script>
+
+  <script>
+
+    var svg3 = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+    var svg4 = d3.select("body").append("svg")
+      .attr("width", width + margin.left + margin.right)
+      .attr("height", height + margin.top + margin.bottom)
+      .append("g")
+      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+     var time_parse = d3.timeParse("%Y-%m-%d");
+
+    // Loading data from csv
+    d3.csv("boardgame_ratings.csv").then(function (data) {
+      data.forEach(function(d) {
+      d["date"] = time_parse(d["date"]);
+      d["Catan=count"] = + d["Catan=count"];
+      d["Dominion=count"] = + d["Dominion=count"];
+      d["Codenames=count"] = + d["Codenames=count"];
+      d["Terraforming Mars=count"] = + d["Terraforming Mars=count"];
+      d["Magic: The Gathering=count"] = + d["Magic: The Gathering=count"];
+      d["Gloomhaven=count"] = + d["Gloomhaven=count"];
+      d["Dixit=count"] = + d["Dixit=count"];
+      d["Monopoly=count"] = + d["Monopoly=count"]; })
+
+      // creating x-axis and y-axis
+      var x_scale = d3.scaleTime()
+           .domain([d3.min(data, function(d) {return d["date"]; }), d3.max(data, function(d) {return d["date"]; })])
+           .range([50, width-50]);
+
+      var y_scale_sqrt = d3.scaleSqrt()
+           .domain([1, d3.max(data, d => parseInt(d["Catan=count"]))])
+           .range([height - margin.bottom+30, margin.top])
+
+      var y_scale_log = d3.scaleLog().clamp(true)
+           .range([height - margin.bottom+30, margin.top+50])
+           .base(10);
+
+      var format_time = d3.timeFormat("%b-%y");
+
+      var x_axis = d3.axisBottom(x_scale).tickFormat(format_time)
+                    .tickValues(d3.timeMonth.every(3).range(d3.min(data, function(d) { return d["date"]; }), d3.max(data, function(d) { return d["date"]; })));
+
+      var y_axis1 = d3.axisLeft(y_scale_sqrt).ticks(10);
+      var y_axis2 = d3.axisLeft(y_scale_log).ticks(10);
+
+      ///////////////////////// SVG 1 ///////////////////////////////////////
+      // adding x-axis and y-axis and text labels to svg
+
+      svg3.append("g")
+         .attr("class", "x axis")
+         .attr("transform", "translate(0," + (height-50) + ")")
+         .call(x_axis);
+
+      svg3.append("g")
+         .attr("class", "y axis")
+         .attr("transform", "translate(" + 50 + ",0)")
+         .call(y_axis1);
+
+      svg3.append("text")
+         .attr("x", width/ 2 )
+         .attr("y", 0)
+         .style("font-weight","bold")
+         .style("text-anchor", "middle")
+         .style("font-size", "30px")
+         .text("Number of Ratings 2016-2020 with Rankings (Square root Scale)");
+
+      svg3.append("text")
+          .attr("x", width/2)
+          .attr("y", height)
+          .style("font-size", "20px")
+          .style("text-anchor", "middle")
+          .text("Month");
+
+      svg3.append("text")
+         .attr("x", -height/2)
+         .attr("y", 0)
+         .attr("transform", "rotate(-90)")
+         .style("font-size", "20px")
+         .style("text-anchor", "middle")
+         .text("Num of Ratings");
+
+      // defining lines for each game
+
+      var catan_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Catan=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var dominion_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Dominion=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var codenames_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Codenames=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var terraforming_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Terraforming Mars=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var magic_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Magic: The Gathering=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var gloomhaven_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Gloomhaven=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var dixit_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Dixit=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      var monopoly_line = d3.line()
+          .x(function(d) { return x_scale(d["date"]); })
+          .y(function(d) { return y_scale_sqrt(d["Monopoly=count"]); })
+          .curve(d3.curveMonotoneX);
+
+      //  Adding lines to SVG
+
+      var games =  ['Catan',  'Dominion', 'Codenames',  'Terraforming  Mars',  'Gloomhaven',  'Magic:  The  Gathering',  'Dixit',  'Monopoly']
+
+      var i;
+      var color = []
+      for (i = 0; i < games.length; i++) {color.push(d3.schemeCategory10[i]);}
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[0])
+        .attr("d", catan_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[1])
+        .attr("d", dominion_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[2])
+        .attr("d", codenames_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[3])
+        .attr("d", terraforming_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[4])
+        .attr("d", magic_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[5])
+        .attr("d", gloomhaven_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[6])
+        .attr("d", dixit_line);
+
+      svg3.append("path")
+        .datum(data)
+        .attr("class", "line")
+        .style("stroke", color[7])
+        .attr("d", monopoly_line);
+
+      var ranks = []
+      for (i = 0; i < data.length; i=i+3) {ranks.push(data[i]);}
+
+      counts = ["Catan=count", "Dominion=count", "Codenames=count", "Terraforming Mars=count","Magic: The Gathering=count", "Gloomhaven=count","Dixit=count","Monopoly=count"]
+
+      // line labels
+      for(i=0; i < games.length; i++){
+        svg3.append("text")
+           .attr("transform","translate(" + (width-40) + "," + y_scale_sqrt(data[data.length-1][counts[i]]) + ")")
+           .style("fill", color[i])
+           .text(games[i]);
+      }
+
+      game_colors = [color[0],color[2],color[3],color[5]]
+      game_ranks = ["Catan=rank", "Codenames=rank", "Terraforming Mars=rank", "Gloomhaven=rank"]
+      game_counts = ["Catan=count", "Codenames=count", "Terraforming Mars=count", "Gloomhaven=count"]
+
+      for(i = 0; i < game_counts.length; i++){
+        svg3.selectAll("dots")
+           .data(ranks)
+           .enter()
+           .append("circle")
+           .attr("r",9)
+           .attr("cx", function(d){return x_scale(d["date"])})
+           .attr("cy", function(d){return y_scale_sqrt(d[game_counts[i]])})
+           .attr("fill", game_colors[i]);
+
+        svg3.selectAll("text"+i)
+           .data(ranks)
+           .enter()
+           .append("text")
+           .text(function(d) {return d[game_ranks[i]];})
+           .attr("x",function(d) {return x_scale(d["date"]);})
+           .attr("y", function(d) {return y_scale_sqrt(d[game_counts[i]])+1.5;})
+           .attr("fill", "white")
+           .attr("font-size","10px")
+           .attr("font-weight","bold")
+           .attr("text-anchor", "middle");
+      }
+
+    ///////////////////////////////////// SVG 2 ///////////////////////////////////////////
+
+    svg4.append("g")
+       .attr("class", "x axis")
+       .attr("transform", "translate(0," + (height-50) + ")")
+       .call(x_axis);
+
+    svg4.append("g")
+       .attr("class", "y axis")
+       .attr("transform", "translate(" + 50 + ",0)")
+       .call(y_axis2);
+
+    svg4.append("text")
+       .attr("x", width/ 2 )
+       .attr("y", 0)
+       .style("font-weight","bold")
+       .style("text-anchor", "middle")
+       .style("font-size", "30px")
+       .text("Number of Ratings 2016-2020 with Rankings (Log Scale)");
+
+    svg4.append("text")
+        .attr("x", width/2)
+        .attr("y", height)
+        .style("font-size", "20px")
+        .style("text-anchor", "middle")
+        .text("Month");
+
+    svg4.append("text")
+       .attr("x", -height/2)
+       .attr("y", 0)
+       .attr("transform", "rotate(-90)")
+       .style("font-size", "20px")
+       .style("text-anchor", "middle")
+       .text("Num of Ratings");
+
+    svg4.append("path")
+         .datum(data)
+         .attr("class", "line")
+         .style("stroke", color[0])
+         .attr("d", catan_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[1])
+       .attr("d", dominion_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[2])
+       .attr("d", codenames_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[3])
+       .attr("d", terraforming_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[4])
+       .attr("d", magic_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[5])
+       .attr("d", gloomhaven_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[6])
+       .attr("d", dixit_line);
+
+     svg4.append("path")
+       .datum(data)
+       .attr("class", "line")
+       .style("stroke", color[7])
+       .attr("d", monopoly_line);
+
+     var ranks = []
+     for (i = 0; i < data.length; i=i+3) {ranks.push(data[i]);}
+
+     //counts = ["Catan=count", "Dominion=count", "Codenames=count", "Terraforming Mars=count", "Magic: The Gathering=count", "Gloomhaven=count","Dixit=count","Monopoly=count"]
+
+     // line labels
+     for(i=0; i < games.length; i++){
+       svg3.append("text")
+          .attr("transform","translate(" + (width-40) + "," + y_scale_sqrt(data[data.length-1][counts[i]]) + ")")
+          .style("fill", color[i])
+          .text(games[i]);
+     }
+
+     game_colors = [color[0],color[2],color[3],color[5]]
+     game_ranks = ["Catan=rank", "Codenames=rank", "Terraforming Mars=rank", "Gloomhaven=rank"]
+     game_counts = ["Catan=count", "Codenames=count", "Terraforming Mars=count", "Gloomhaven=count"]
+
+     for(i = 0; i < game_counts.length; i++){
+       svg4.selectAll("dots")
+          .data(ranks)
+          .enter()
+          .append("circle")
+          .attr("r",9)
+          .attr("cx", function(d){return x_scale(d["date"])})
+          .attr("cy", function(d){return y_scale_sqrt(d[game_counts[i]])})
+          .attr("fill", game_colors[i]);
+
+       svg4.selectAll("text"+i)
+          .data(ranks)
+          .enter()
+          .append("text")
+          .text(function(d) {return d[game_ranks[i]];})
+          .attr("x",function(d) {return x_scale(d["date"]);})
+          .attr("y", function(d) {return y_scale_sqrt(d[game_counts[i]])+1.5;})
+          .attr("fill", "white")
+          .attr("font-size","10px")
+          .attr("font-weight","bold")
+          .attr("text-anchor", "middle");
+     }
+
+     // line labels
+     for(i=0; i < games.length; i++){
+       svg4.append("text")
+          .attr("transform","translate(" + (width-40) + "," + y_scale_sqrt(data[data.length-1][counts[i]]) + ")")
+          .style("fill", color[i])
+          .text(games[i]);
+     }
+
+
+    //////////////////////////////////////////////////////////////////
+
+
+    svg3.append("circle")
+         .attr("cx", width+40)
+         .attr("cy", height-margin.top)
+         .attr("r",18)
+
+    svg3.append("text")
+        .attr("x", width+28)
+        .attr("y", height-margin.top+5)
+        .text("Rank")
+        .attr("text-anchor", "start")
+        .attr("fill","white")
+        .style("font-size","12px")
+
+    svg3.append("text")
+        .attr("x", width-30)
+        .attr("y", height-margin.top+40)
+        .text("BoardGameGeek Rank")
+        .attr("text-anchor", "start")
+
+
+      svg4.append("circle")
+           .attr("cx", width+40)
+           .attr("cy", height-margin.top)
+           .attr("r",18)
+
+      svg4.append("text")
+          .attr("x", width+28)
+          .attr("y", height-margin.top+5)
+          .text("Rank")
+          .attr("text-anchor", "start")
+          .attr("fill","white")
+          .style("font-size","12px")
+
+      svg4.append("text")
+          .attr("x", width-30)
+          .attr("y", height-margin.top+40)
+          .text("BoardGameGeek Rank")
+          .attr("text-anchor", "start")
+
+      svg4.append("text")
+          .attr("x", width-40)
+          .attr("y", height-margin.top+125)
+          .text("mvegesna3")
+          .attr("text-anchor", "start")
+          .attr("fill","black")
+          .style("font-size","20px")
+
+    })
+
+  </script>
+
+</html>

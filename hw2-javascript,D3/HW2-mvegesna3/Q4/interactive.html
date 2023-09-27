@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+
+<head>
+  <title>Games Rating: 2015 - 2019</title>
+  <meta charset="utf-8">
+  <script type="text/javascript" src="../lib/d3.v5.min.js"></script>
+  <script type="text/javascript" src="../lib/d3-dsv.min.js"></script>
+</head>
+<style type="text/css">
+
+  .line {
+      fill: none;
+      stroke: #ffab00; 
+      stroke-width: 3;
+  }
+
+</style>
+
+<body>
+
+<div id="container"></div>
+
+<script>
+
+// defining margins
+
+const margin = {top: 50, right: 50, bottom: 50, left: 50};
+const width = window.innerWidth - margin.left - margin.right;
+const height = window.innerHeight - margin.top - margin.bottom;
+
+// defining svg
+
+var svg = d3.select("body")
+            .append("svg")
+            .attr("width", width + margin.left + margin.right)
+            .attr("height", height + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+var svg_bar = d3.select("body")
+             .append("svg")
+             .attr("width", width + margin.left + margin.right)
+             .attr("height", height + margin.top + margin.bottom)
+             .append("g")
+             .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+
+// Loading data from csv
+
+d3.csv("average-rating.csv").then(function(data){
+  data.forEach(function(d){
+    d.name = d.name;
+    d.year = d.year;
+    d.average_rating = Math.floor(d.average_rating)
+    d.users_rated = d.users_rated;})
+
+    // functions for sorting data
+
+    function year_sort(m,n){
+      if (m.year < n.year) {return -1;}
+      if (m.year > n.year) {return 1;}
+      else {return 0;}
+    }
+
+    function rating_sort(m,n){
+      if (m.average_rating < n.average_rating) {return -1;}
+      if (m.average_rating > n.average_rating) {return 1;}
+      else {return 0;}
+    }
+
+    function key_sort(m,n){
+      if (m.key < n.key) {return -1;}
+      if (m.key > n.key) {return 1;}
+      else {return 0;}
+    }
+
+    // sorting data
+
+    data.sort(year_sort)
+    data_15_19 = data.filter(function(y){ return y.year >= "2015" && y.year <= "2019";});
+    data_15_19.sort(rating_sort);
+
+    var years = d3.map(data, function(d){ return d.year}).keys();
+    var ratings = d3.map(data_15_19, function(d){ return d.average_rating}).keys();
+    //console.log(ratings[0])
+    var game_count = d3.nest().key(function(d){return d.year})
+                              .key(function(d){return d.average_rating})
+                              .rollup(function(d) {return d3.sum(d, function(g) {return 1})})
+                              .entries(data_15_19)
+                              .map(function(obj){
+                                     for(var i = 0; i <= ratings.length-1; i++){
+                                         var index = obj.values.indexOf(ratings[i])
+                                         if (obj.values.indexOf("1") == -1){
+                                              //obj.values.push({key: ratings[i], values: 0});
+                                              continue;
+                                       }
+                                     }
+                                     return obj;
+                              });
+
+    game_count.sort(key_sort)
+
+    // creating x and y axis
+    var min_avg_rating = d3.min(data_15_19, function(d) {return d.average_rating;})
+    var max_avg_rating = d3.max(data_15_19, function(d) {return d.average_rating;})
+    var min_game_count = d3.min(game_count, function(d) {return d3.min(d.values, function(m) {return m.value})})
+    var max_game_count = d3.max(game_count, function(d) {return d3.max(d.values, function(m) {return m.value})})
+  //  console.log(max_game_count)
+
+    var x_scale = d3.scaleLinear()
+                    .range([50, width-50])
+                    .domain([0, max_avg_rating])
+
+    var y_scale = d3.scaleLinear()
+                    .range([height-50,50])
+                    .domain([0,max_game_count])
+
+    var x_axis = d3.axisBottom(x_scale).ticks(10);
+    var y_axis =  d3.axisLeft(y_scale).ticks(10);
+
+    svg.append("g")
+       .attr("transform", "translate(0," + (height-50) + ")")
+       .call(x_axis);
+
+    svg.append("g")
+       .attr("transform", "translate(" + 50 + ",0)")
+       .call(y_axis);
+
+    // line
+    var line = d3.line()
+                 .x(function(d) {return x_scale(d.key); })
+                 .y(function(d) {return y_scale(d.value); })
+
+    // adding text labels
+    svg.append("text")
+       .attr("x", width/2)
+       .attr("y", 0)
+       .style("text-anchor","middle")
+       .style("font-size","30px")
+       .text("Board Games by Rating 2015-2019");
+
+   svg.append("text")
+      .attr("x", width/2)
+      .attr("y", 30)
+      .style("text-anchor","middle")
+      .style("font-size","20px")
+      .style("fill", "purple")
+      .text("mvegesna3");
+
+   svg.append("text")
+       .attr("x", -height/2)
+       .attr("y", 0)
+       .attr("transform", "rotate(-90)")
+       .style("text-anchor", "middle")
+       .style("font-size", "25px")
+       .text("Count");
+
+   svg.append("text")
+      .attr("x", width/2)
+      .attr("y", height)
+      .style("text-anchor", "middle")
+      .style("font-size", "25px")
+      .text("Rating");
+
+  var color = []
+  for (i = 0; i < game_count.length; i++) {color.push(d3.schemeCategory10[i]);}
+
+  // adding the lines
+  for(i = 0; i < game_count.length; i++) {
+      svg.append("path")
+          .datum(game_count[i].values)
+          .style("fill", "none")
+          .style("stroke", color[i])
+          .style("stroke-width", "1.5px")
+          .attr("d", line);
+  }
+
+  radius = 7
+
+  // adding the dots
+  for(var i=0; i < game_count.length; i++) {
+      svg.selectAll("circle" + i)
+         .data(game_count[i].values)
+         .enter()
+         .append("circle")
+         .attr("cx", function(d) {return x_scale(d.key)})
+         .attr("cy", function(d) {return y_scale(d.value)})
+         .attr("r", radius)
+         .attr("rating", function(d) {return d.key})
+         .attr("get_year", i)
+         .attr("fill", color[i])
+         .on("mouseover", selected)
+         .on("mouseout", clear_barchart);
+    }
+
+  // legend
+  for(i = 0; i < game_count.length; i++) {
+      svg.append("circle")
+         .attr("cx",width-50)
+         .attr("cy",30*i)
+         .attr("r", radius)
+         .style("fill", color[i])
+
+      svg.append("text")
+         .attr("x", width-35)
+         .attr("y", 5+30*i)
+         .text(game_count[i].key)
+         .style("font-size", "15px")
+  }
+
+  /////////////////////// bar chart /////////////////////
+
+  function selected(){
+    d3.select(this).attr("r", radius+4)
+
+    // data for the particular year and rating
+    var rating = d3.select(this).attr("rating")
+    var year = game_count[d3.select(this).attr("get_year")].key;
+    sub_data = data.filter(function(d) {return d.average_rating == rating & d.year == year});
+
+    // if game count is not 0, call bar_chart
+    if (sub_data.length > 0){bar_chart(sub_data,rating,year);}
+
+  }
+
+  function bar_chart(sub_data, rating, year){
+
+    // getting top 5
+    sub_data.sort(function(a,b){ return d3.ascending(parseInt(a.users_rated), parseInt(b.users_rated)); })
+    data_5 = sub_data.slice((sub_data.length)-5, sub_data.length)
+
+    // limiting to 10 characters
+    for(i=0; i < data_5.length; i++){
+      data_5[i].name = data_5[i].name.substring(0,10)
+      };
+
+    // adding x-axis and y-axis
+
+    //scales
+    var x_bar = d3.scaleLinear()
+                .domain([0, d3.max(data_5, function(d){return +d.users_rated})])
+                //.domain([0, data_5[4].users_rated])
+                .range([0, width-50]);
+    var y_bar = d3.scaleBand()
+                .domain(data_5.map(function(d) {return d.name}))
+                .range([height-50,50]);
+
+    var x_axis_bar = d3.axisBottom(x_bar)
+                       .ticks(10)
+
+    var y_axis_bar = d3.axisLeft(y_bar)
+                       .ticks(10)
+
+    svg_bar.append("g")
+           .attr("transform", "translate(50," + (height-50) + ")")
+           .call(x_axis_bar)
+
+    svg_bar.append("g")
+           .attr("transform", "translate(" + 50 + ",0)")
+           .call(y_axis_bar)
+
+    // bars
+
+    svg_bar.selectAll("bar")
+           .data(data_5)
+           .enter()
+           .append("rect")
+           .attr("x", 52)
+           .attr("y", function(d) {return +y_bar(d.name)})
+           .attr("width",function(d) {return x_bar(d.users_rated)})
+           .attr("height", height/7-20)
+           .attr("fill", "#c9b4e4")
+
+    // grid lines
+
+    // gridlines in x axis function
+    function x_gridlines() {
+        return d3.axisBottom(x)
+            .ticks(10)
+    }
+
+    //gridlines in y axis function
+    function y_gridlines() {
+        return d3.axisLeft(y)
+            .ticks(10)
+    }
+
+    svg_bar.append("g")
+          .attr("class", "grid")
+          .attr("transform", "translate(0," + height + ")")
+          .call(x_gridlines()
+              .tickSize(-height)
+              .tickFormat("")
+          )
+
+    svg_bar.append("g")
+        .attr("class", "grid")
+        .call(y_gridlines()
+            .tickSize(-width)
+            .tickFormat("")
+        )
+
+    // adding bar chart title and text labels
+
+    svg_bar.append("text")
+           .attr("x", width/2)
+           .attr("y", 0)
+           .style("text-anchor", "middle")
+           .style("font-size", "30px")
+           .text("Top 5 Most Rated Games for Year "+year+" with Rating "+rating);
+
+    svg_bar.append("text")
+         .attr("x", -height/2+25)
+         .attr("y", 0)
+         .attr("transform", "rotate(-90)")
+         .style("text-anchor", "middle")
+         .style("font-size", "20px")
+         .text("Number of Users");
+
+     svg_bar.append("text")
+        .attr("x", width/2)
+        .attr("y", height)
+        .style("text-anchor", "middle")
+        .style("font-size", "20px")
+        .text("Games");
+
+    }
+
+    function clear_barchart() {
+        d3.select(this).attr("r", 7)
+        svg_bar.selectAll("*").remove()
+    }
+
+  })
+
+</script>
+
+</body>

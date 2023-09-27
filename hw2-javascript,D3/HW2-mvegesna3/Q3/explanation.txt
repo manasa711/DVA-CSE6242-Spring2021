@@ -1,0 +1,1 @@
+Non-Linear scales can be used when the given data varies by a large degree to minimize the diversity which will result in better visualizations. The square root scale is a type of power scale and is most commonly used for sizing circles by area rather than radius. The log scale is most useful for transforming data values into positions and length values. 
